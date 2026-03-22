@@ -87,6 +87,10 @@ Use `--localhost` flag to bind to `127.0.0.1` only.
 - [Hermes Agent](https://github.com/NousResearch/hermes-agent) — The AI agent this UI monitors
 - [OpenClaw Web UI](https://docs.openclaw.ai/web) — Inspiration for the dashboard design
 
+## Built With
+
+This project was vibe-coded with [Claude Code](https://claude.ai/claude-code) (Claude Opus 4.6).
+
 ## License
 
 MIT
