@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+venv/
+.venv/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test/Cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sensitive
+.env
+auth.json
+*.db
+*.db-wal
+*.db-shm
+
+# Backups
+*.bak
+*.bak.*
