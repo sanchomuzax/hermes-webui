@@ -40,7 +40,7 @@ export function Dashboard() {
   ) || []
 
   return (
-    <div className="p-4 flex flex-col h-full gap-4">
+    <div className="p-4 flex flex-col gap-4 md:h-full">
       <h2 className="text-xl font-semibold flex-shrink-0">Dashboard</h2>
 
       {/* Stats Cards */}
@@ -77,16 +77,16 @@ export function Dashboard() {
       </div>
 
       {/* Activity Feed + Model Distribution side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:flex-1 md:min-h-0">
         {/* Activity Feed — 2/3 width */}
-        <div className="lg:col-span-2 rounded-lg border p-4 flex flex-col min-h-0" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+        <div className="lg:col-span-2 rounded-lg border p-4 flex flex-col md:min-h-0" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Activity Feed</h3>
             <Link to="/sessions" className="text-xs no-underline" style={{ color: 'var(--color-primary)' }}>
               See all
             </Link>
           </div>
-          <div className="space-y-1 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-1 max-h-64 md:max-h-none md:flex-1 overflow-y-auto md:min-h-0">
             {sortedSessions.length === 0 && (
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 No sessions yet.
@@ -127,9 +127,9 @@ export function Dashboard() {
         </div>
 
         {/* Model Distribution — 1/3 width */}
-        <div className="rounded-lg border p-4 flex flex-col min-h-0" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+        <div className="rounded-lg border p-4 flex flex-col md:min-h-0" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
           <h3 className="text-sm font-medium mb-3 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>Sessions by Model</h3>
-          <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-2 max-h-64 md:max-h-none md:flex-1 overflow-y-auto md:min-h-0">
             {stats?.sessions_by_model && Object.entries(stats.sessions_by_model)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 8)
