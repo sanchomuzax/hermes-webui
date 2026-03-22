@@ -2,15 +2,133 @@
 
 Process monitoring and configuration dashboard for [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
+![Dashboard Screenshot](docs/screenshot-dashboard.png)
+
 ## Features
 
-- **Dashboard** — Real-time overview with session activity feed, gateway status, platform health, and cost tracking
-- **Sessions** — Browse, search (FTS5), and inspect conversation histories with message-level detail
-- **Config** — Edit `config.yaml` and environment variables through the browser (with backup on every write)
+- **Dashboard** — Real-time activity feed with session list, gateway status, platform/service health, cost tracking, and model distribution
+- **Sessions** — Browse, search (FTS5), and inspect full conversation histories with message-level detail
+- **Config** — View `config.yaml` and environment variables (read-only for safety)
 - **Cron** — View and manage scheduled agent jobs
 - **Skills** — Browse built-in and custom skills with full source inspection
-- **Responsive** — Mobile-friendly with hamburger menu navigation
+- **Responsive** — Mobile-friendly layout with hamburger menu
 - **Dark/Light theme** — Toggle between themes
+- **Real-time updates** — WebSocket-based polling bridge, no agent code modification needed
+
+## Requirements
+
+- Python 3.11+
+- Node.js 18+ (for frontend build only)
+- A running [Hermes Agent](https://github.com/NousResearch/hermes-agent) installation at `~/.hermes/`
+
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/sanchomuzax/hermes-webui.git
+cd hermes-webui
+```
+
+### 2. Set up Python environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+### 3. Build the frontend
+
+```bash
+cd frontend
+npm install
+npx vite build
+cd ..
+```
+
+### 4. Run
+
+```bash
+hermes-webui
+```
+
+Or directly:
+
+```bash
+python -m webui
+```
+
+Output:
+
+```
+Starting Hermes WebUI at http://0.0.0.0:8643
+Auth token: cb2ef6c2fff7a3c32828e364b2d9f3b7099bfc98740836b9c22b8ea59c9cbda1
+```
+
+### 5. Log in
+
+Open `http://<your-host>:8643` in a browser and paste the **auth token** shown in the console output.
+
+The token is generated once and stored in `~/.hermes/auth.json`. To retrieve it later:
+
+```bash
+python3 -c "import json; print(json.load(open('$HOME/.hermes/auth.json'))['webui_token'])"
+```
+
+## Configuration
+
+| Environment Variable | Default | Description |
+|---|---|---|
+| `HERMES_HOME` | `~/.hermes` | Hermes Agent installation directory |
+| `HERMES_WEBUI_HOST` | `0.0.0.0` | Bind address |
+| `HERMES_WEBUI_PORT` | `8643` | Port |
+
+### CLI flags
+
+| Flag | Description |
+|---|---|
+| `--localhost` | Bind to `127.0.0.1` only (not accessible from LAN) |
+| `--port PORT` | Override the default port |
+
+## Running as a systemd service
+
+Create `/etc/systemd/system/hermes-webui.service`:
+
+```ini
+[Unit]
+Description=Hermes WebUI
+After=network.target
+
+[Service]
+Type=simple
+User=sancho
+WorkingDirectory=/home/sancho/.hermes/hermes-webui
+ExecStart=/home/sancho/.hermes/hermes-webui/venv/bin/python -m webui
+Restart=on-failure
+RestartSec=5
+Environment=HERMES_HOME=/home/sancho/.hermes
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable hermes-webui
+sudo systemctl start hermes-webui
+```
+
+Check status:
+
+```bash
+sudo systemctl status hermes-webui
+journalctl -u hermes-webui -f
+```
+
+> **Note:** When running as a service, the auth token is not printed to your terminal. Retrieve it from `~/.hermes/auth.json` as shown above.
 
 ## Architecture
 
@@ -35,52 +153,35 @@ Process monitoring and configuration dashboard for [Hermes Agent](https://github
 
 Hermes WebUI reads from the agent's data files without modifying the agent's core code.
 
-## Requirements
-
-- Python 3.11+
-- Node.js 18+ (for frontend build)
-- A running [Hermes Agent](https://github.com/NousResearch/hermes-agent) installation
-
-## Quick Start
-
-```bash
-# Clone
-git clone https://github.com/sanchomuzax/hermes-webui.git
-cd hermes-webui
-
-# Install Python dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install -e .
-
-# Build frontend
-cd frontend
-npm install
-npx vite build
-cd ..
-
-# Run
-hermes-webui
-# or: python -m webui
-```
-
-The server starts at `http://0.0.0.0:8643` and prints an auth token to the console.
-
-## Configuration
-
-| Environment Variable | Default | Description |
-|---|---|---|
-| `HERMES_HOME` | `~/.hermes` | Hermes agent installation directory |
-| `HERMES_WEBUI_HOST` | `0.0.0.0` | Bind address |
-| `HERMES_WEBUI_PORT` | `8643` | Port |
-
-Use `--localhost` flag to bind to `127.0.0.1` only.
-
 ## Tech Stack
 
-- **Backend**: FastAPI, Uvicorn, Pydantic, PyYAML
+- **Backend**: Python 3.11+, FastAPI, Uvicorn, Pydantic, PyYAML
 - **Frontend**: React 19, TypeScript, Vite, TailwindCSS 4, TanStack Query
 - **Data**: SQLite (read-only from Hermes Agent's `state.db`)
+
+## Pages
+
+| Page | Description |
+|---|---|
+| **Dashboard** | KPI cards (sessions, messages, cost, gateway), platform badges, activity feed with live session list, model distribution |
+| **Sessions** | Paginated session list with FTS5 search, source filter tabs, click into any session to view full message history |
+| **Config** | Read-only view of `config.yaml` sections and `.env` variables (sensitive values masked) |
+| **Cron** | List of scheduled cron jobs with status, schedule, and prompt preview |
+| **Skills** | Grid of built-in and custom skills with description, click to view full source |
+
+## Troubleshooting
+
+### "Cannot connect to server" on login
+- Make sure the WebUI server is running
+- If accessing from another machine, ensure the server is bound to `0.0.0.0` (default), not `127.0.0.1`
+
+### Dashboard shows no sessions
+- Verify Hermes Agent has been used at least once (check `~/.hermes/state.db` exists)
+- The WebUI reads `state.db` in read-only mode — if the agent is actively writing, there may be a brief WAL lock delay
+
+### Activity Feed not updating
+- The polling bridge checks `state.db` every 3 seconds
+- Ensure the WebSocket connection shows "Connected" (green dot in the header)
 
 ## Related
 
