@@ -76,60 +76,61 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Activity Feed — session list in feed style */}
-      <div className="rounded-lg border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Activity Feed</h3>
-          <Link to="/sessions" className="text-xs no-underline" style={{ color: 'var(--color-primary)' }}>
-            See all
-          </Link>
+      {/* Activity Feed + Model Distribution side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Activity Feed — 2/3 width */}
+        <div className="lg:col-span-2 rounded-lg border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Activity Feed</h3>
+            <Link to="/sessions" className="text-xs no-underline" style={{ color: 'var(--color-primary)' }}>
+              See all
+            </Link>
+          </div>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {sortedSessions.length === 0 && (
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                No sessions yet.
+              </p>
+            )}
+            {sortedSessions.slice(0, 15).map((s) => {
+              const isActive = !s.ended_at
+              const dotColor = isActive ? 'var(--color-success)' : 'var(--color-text-muted)'
+              const label = sessionLabel(s)
+              const timeAgo = formatTimeAgo(s.last_active || s.started_at)
+              return (
+                <Link key={s.id} to={`/sessions/${s.id}`} className="block no-underline">
+                  <div className="flex items-center gap-2 text-xs p-1.5 rounded hover:brightness-110 transition-all"
+                    style={{ backgroundColor: 'var(--color-bg)' }}>
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: dotColor }} />
+                    <span
+                      className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                      style={{
+                        backgroundColor: sourceColor(s.source),
+                        color: '#fff',
+                      }}
+                    >
+                      {s.source}
+                    </span>
+                    <span className="truncate font-medium" style={{ color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+                      {label}
+                    </span>
+                    <span className="ml-auto flex-shrink-0 flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
+                      <span>{s.message_count} msgs</span>
+                      <span>{timeAgo}</span>
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </div>
-        <div className="space-y-1 max-h-80 overflow-y-auto">
-          {sortedSessions.length === 0 && (
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              No sessions yet.
-            </p>
-          )}
-          {sortedSessions.slice(0, 15).map((s) => {
-            const isActive = !s.ended_at
-            const dotColor = isActive ? 'var(--color-success)' : 'var(--color-text-muted)'
-            const label = sessionLabel(s)
-            const timeAgo = formatTimeAgo(s.last_active || s.started_at)
-            return (
-              <Link key={s.id} to={`/sessions/${s.id}`} className="block no-underline">
-                <div className="flex items-center gap-2 text-xs p-1.5 rounded hover:brightness-110 transition-all"
-                  style={{ backgroundColor: 'var(--color-bg)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: dotColor }} />
-                  <span
-                    className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
-                    style={{
-                      backgroundColor: sourceColor(s.source),
-                      color: '#fff',
-                    }}
-                  >
-                    {s.source}
-                  </span>
-                  <span className="truncate font-medium" style={{ color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
-                    {label}
-                  </span>
-                  <span className="ml-auto flex-shrink-0 flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
-                    <span>{s.message_count} msgs</span>
-                    <span>{timeAgo}</span>
-                  </span>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      </div>
 
-      {/* Model Distribution */}
-      {stats?.sessions_by_model && Object.keys(stats.sessions_by_model).length > 0 && (
+        {/* Model Distribution — 1/3 width */}
         <div className="rounded-lg border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
           <h3 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>Sessions by Model</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {Object.entries(stats.sessions_by_model)
+          <div className="space-y-2">
+            {stats?.sessions_by_model && Object.entries(stats.sessions_by_model)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 8)
               .map(([model, count]) => (
@@ -141,7 +142,7 @@ export function Dashboard() {
               ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
