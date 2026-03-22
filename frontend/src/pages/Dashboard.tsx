@@ -86,7 +86,7 @@ export function Dashboard() {
               See all
             </Link>
           </div>
-          <div className="space-y-1 max-h-80 overflow-y-auto">
+          <div className="space-y-1 max-h-52 overflow-y-auto">
             {sortedSessions.length === 0 && (
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 No sessions yet.
@@ -129,7 +129,7 @@ export function Dashboard() {
         {/* Model Distribution — 1/3 width */}
         <div className="rounded-lg border p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
           <h3 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>Sessions by Model</h3>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-52 overflow-y-auto">
             {stats?.sessions_by_model && Object.entries(stats.sessions_by_model)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 8)
