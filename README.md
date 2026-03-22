@@ -2,7 +2,7 @@
 
 Process monitoring and configuration dashboard for [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
-![Dashboard Screenshot](docs/screenshot-dashboard.png)
+![Dashboard Screenshot](docs/screenshot-dashboard-1-v1.0.1.png)
 
 ## Features
 
