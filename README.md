@@ -2,7 +2,7 @@
 
 Process monitoring and configuration dashboard for [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
-![Dashboard Screenshot](docs/screenshot-dashboard-1-v1.0.1.png)
+![Dashboard](docs/screenshot-dashboard-home-v1.png)
 
 ## Features
 
@@ -14,6 +14,20 @@ Process monitoring and configuration dashboard for [Hermes Agent](https://github
 - **Responsive** — Mobile-friendly layout with hamburger menu
 - **Dark/Light theme** — Toggle between themes
 - **Real-time updates** — WebSocket-based polling bridge, no agent code modification needed
+
+## Screenshots
+
+| Dashboard | Sessions |
+|---|---|
+| ![Dashboard](docs/screenshot-dashboard-home-v1.png) | ![Sessions](docs/screenshot-dashboard-sessions-v1.png) |
+
+| Config | Cron Jobs |
+|---|---|
+| ![Config](docs/screenshot-dashboard-config-v1.png) | ![Cron](docs/screenshot-dashboard-crons-v1.png) |
+
+| Skills |
+|---|
+| ![Skills](docs/screenshot-dashboard-skills-v1.png) |
 
 ## Requirements
 
@@ -63,7 +77,7 @@ Output:
 
 ```
 Starting Hermes WebUI at http://0.0.0.0:8643
-Auth token: cb2ef6c2fff7a3c32828e364b2d9f3b7099bfc98740836b9c22b8ea59c9cbda1
+Auth token: <your-auth-token>
 ```
 
 ### 5. Log in
@@ -102,12 +116,12 @@ After=network.target
 
 [Service]
 Type=simple
-User=sancho
-WorkingDirectory=/home/sancho/.hermes/hermes-webui
-ExecStart=/home/sancho/.hermes/hermes-webui/venv/bin/python -m webui
+User=YOUR_USER
+WorkingDirectory=/home/YOUR_USER/.hermes/hermes-webui
+ExecStart=/home/YOUR_USER/.hermes/hermes-webui/venv/bin/python -m webui
 Restart=on-failure
 RestartSec=5
-Environment=HERMES_HOME=/home/sancho/.hermes
+Environment=HERMES_HOME=/home/YOUR_USER/.hermes
 
 [Install]
 WantedBy=multi-user.target
