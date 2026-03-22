@@ -1,11 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 
 export function Config() {
-  const queryClient = useQueryClient()
-
-  const { data: config, isLoading } = useQuery({
+  const { data: config, isLoading, error } = useQuery({
     queryKey: ['config'],
     queryFn: api.config,
   })
@@ -15,16 +12,17 @@ export function Config() {
     queryFn: api.envVariables,
   })
 
-  const patchMutation = useMutation({
-    mutationFn: ({ path, value }: { path: string; value: unknown }) => api.patchConfig(path, value),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['config'] }),
-  })
-
   if (isLoading) return <div className="p-6">Loading config...</div>
+  if (error) return <div className="p-6" style={{ color: 'var(--color-error)' }}>Failed to load config</div>
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-xl font-semibold">Configuration</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Configuration</h2>
+        <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'var(--color-surface-hover)', color: 'var(--color-text-muted)' }}>
+          Read-only
+        </span>
+      </div>
 
       {/* Config Sections */}
       {config?.config && Object.entries(config.config).map(([section, values]) => (
@@ -32,7 +30,6 @@ export function Config() {
           key={section}
           title={section}
           values={values as Record<string, unknown>}
-          onSave={(path, value) => patchMutation.mutate({ path: `${section}.${path}`, value })}
         />
       ))}
 
@@ -66,31 +63,10 @@ export function Config() {
 function ConfigSection({
   title,
   values,
-  onSave,
 }: {
   title: string
   values: Record<string, unknown>
-  onSave: (path: string, value: unknown) => void
 }) {
-  const [editing, setEditing] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState('')
-
-  const handleEdit = (key: string, currentValue: unknown) => {
-    setEditing(key)
-    setEditValue(typeof currentValue === 'string' ? currentValue : JSON.stringify(currentValue))
-  }
-
-  const handleSave = (key: string) => {
-    let parsedValue: unknown = editValue
-    try {
-      parsedValue = JSON.parse(editValue)
-    } catch {
-      // keep as string
-    }
-    onSave(key, parsedValue)
-    setEditing(null)
-  }
-
   if (typeof values !== 'object' || values === null) {
     return null
   }
@@ -108,35 +84,19 @@ function ConfigSection({
             <span className="font-mono text-xs min-w-[160px]" style={{ color: 'var(--color-text-muted)' }}>
               {key}
             </span>
-            {editing === key ? (
-              <div className="flex-1 flex gap-1">
-                <input
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="flex-1 px-2 py-0.5 rounded text-xs font-mono border outline-none"
-                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-primary)', color: 'var(--color-text)' }}
-                  autoFocus
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave(key)}
-                />
-                <button onClick={() => handleSave(key)} className="text-xs px-2 rounded"
-                  style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>Save</button>
-                <button onClick={() => setEditing(null)} className="text-xs px-2"
-                  style={{ color: 'var(--color-text-muted)' }}>Cancel</button>
-              </div>
-            ) : (
-              <>
-                <span className="flex-1 text-xs font-mono truncate">
-                  {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}
-                </span>
-                <button onClick={() => handleEdit(key, value)} className="text-xs px-2 py-0.5 rounded opacity-50 hover:opacity-100"
-                  style={{ color: 'var(--color-primary)' }}>
-                  Edit
-                </button>
-              </>
-            )}
+            <span className="flex-1 text-xs font-mono truncate">
+              {formatValue(value)}
+            </span>
           </div>
         ))}
       </div>
     </div>
   )
+}
+
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) return '(empty)'
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
 }
