@@ -115,6 +115,10 @@ export const api = {
   // Skills
   builtinSkills: () => request<{ skills: import('./types').SkillInfo[] }>('/skills/builtin'),
   customSkills: () => request<{ skills: import('./types').SkillInfo[] }>('/skills/custom'),
-  skillDetail: (source: string, dirName: string) =>
-    request<import('./types').SkillDetail>(`/skills/detail/${source}/${dirName}`),
+  skillDetail: (source: string, dirName: string, category?: string | null) => {
+    const params = category ? `?category=${encodeURIComponent(category)}` : ''
+    return request<import('./types').SkillDetail>(`/skills/detail/${source}/${dirName}${params}`)
+  },
+  skillUsage: () =>
+    request<{ usage_7d: Record<string, number>; usage_all: Record<string, number> }>('/skills/usage'),
 }

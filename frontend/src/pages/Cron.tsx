@@ -1,15 +1,40 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { api } from '../api/client'
+import { cronToHuman, intervalToHuman } from '../utils/cronHuman'
 import type { CronJob } from '../api/types'
 
-function formatSchedule(schedule: CronJob['schedule']): string {
+function getScheduleExpr(schedule: CronJob['schedule']): string {
   if (typeof schedule === 'object' && schedule !== null) {
-    return (schedule as Record<string, string>).display
-      || (schedule as Record<string, string>).expr
-      || JSON.stringify(schedule)
+    const s = schedule as Record<string, string>
+    return s.expr || s.display || JSON.stringify(schedule)
   }
   return String(schedule ?? '')
+}
+
+function getScheduleKind(job: CronJob): 'cron' | 'interval' | 'once' {
+  if (typeof job.schedule === 'object' && job.schedule !== null) {
+    const kind = (job.schedule as Record<string, string>).kind
+    if (kind === 'interval') return 'interval'
+    if (kind === 'once') return 'once'
+  }
+  return 'cron'
+}
+
+function getHumanSchedule(job: CronJob): string {
+  const kind = getScheduleKind(job)
+  const expr = getScheduleExpr(job.schedule)
+
+  if (kind === 'once') return 'Run once'
+  if (kind === 'interval') return intervalToHuman(expr)
+  return cronToHuman(expr)
+}
+
+function parseNextRun(job: CronJob): number {
+  const raw = job.next_run || job.next_run_at
+  if (!raw) return Infinity
+  const d = new Date(String(raw))
+  return isNaN(d.getTime()) ? Infinity : d.getTime()
 }
 
 export function Cron() {
@@ -33,6 +58,17 @@ export function Cron() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cron-jobs'] }),
   })
 
+  // Sort: enabled first, then by next_run ascending (soonest first)
+  const sortedJobs = useMemo(() => {
+    if (!data?.jobs) return []
+    return [...data.jobs].sort((a, b) => {
+      // enabled before disabled
+      if (a.enabled !== b.enabled) return a.enabled ? -1 : 1
+      // within same enabled group, soonest next_run first
+      return parseNextRun(a) - parseNextRun(b)
+    })
+  }, [data?.jobs])
+
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
   }
@@ -55,33 +91,52 @@ export function Cron() {
       {isLoading && <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading...</p>}
 
       <div className="space-y-2">
-        {data?.jobs.map((job) => {
+        {sortedJobs.map((job) => {
           const isExpanded = expandedId === job.id
+          const kind = getScheduleKind(job)
+          const scheduleExpr = getScheduleExpr(job.schedule)
+          const humanSchedule = getHumanSchedule(job)
+
           return (
-            <div key={job.id} className="rounded-lg border overflow-hidden"
-              style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-              {/* Header — always visible */}
+            <div key={job.id}
+              className="rounded-lg border overflow-hidden"
+              style={{
+                borderColor: 'var(--color-border)',
+                backgroundColor: 'var(--color-surface)',
+                opacity: job.enabled ? 1 : 0.6,
+              }}>
+              {/* Header */}
               <div className="p-4 cursor-pointer" onClick={() => toggleExpand(job.id)}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm flex items-center gap-2">
+                    <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
                       <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         {isExpanded ? '▾' : '▸'}
                       </span>
                       {job.name}
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${job.enabled ? '' : 'opacity-50'}`}
+                      {/* Enabled/Disabled badge */}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full`}
                         style={{
                           backgroundColor: job.enabled ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
                           color: job.enabled ? 'var(--color-success)' : 'var(--color-error)',
                         }}>
                         {job.enabled ? 'enabled' : 'disabled'}
                       </span>
+                      {/* Schedule type badge */}
+                      <ScheduleKindBadge kind={kind} />
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      {/* Cron expression */}
                       <span className="text-xs font-mono px-1.5 py-0.5 rounded"
                         style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
-                        {formatSchedule(job.schedule)}
+                        {scheduleExpr}
                       </span>
+                      {/* Human-readable */}
+                      <span className="text-xs" style={{ color: 'var(--color-primary)' }}>
+                        {humanSchedule}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 flex-wrap">
                       {job.last_run && (
                         <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                           last: {job.last_run}
@@ -134,8 +189,12 @@ export function Cron() {
                       <span className="font-mono">{job.id}</span>
                     </div>
                     <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-bg)' }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>Type:</span>{' '}
+                      <span className="font-mono">{kind}</span>
+                    </div>
+                    <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-bg)' }}>
                       <span style={{ color: 'var(--color-text-muted)' }}>Schedule:</span>{' '}
-                      <span className="font-mono">{formatSchedule(job.schedule)}</span>
+                      <span className="font-mono">{scheduleExpr}</span>
                     </div>
                     {job.created_at && (
                       <div className="p-2 rounded" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -161,6 +220,22 @@ export function Cron() {
         )}
       </div>
     </div>
+  )
+}
+
+const KIND_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  cron: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa', label: 'recurring' },
+  interval: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa', label: 'interval' },
+  once: { bg: 'rgba(245,158,11,0.15)', color: '#fbbf24', label: 'one-time' },
+}
+
+function ScheduleKindBadge({ kind }: { kind: 'cron' | 'interval' | 'once' }) {
+  const style = KIND_STYLES[kind] || KIND_STYLES.cron
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+      style={{ backgroundColor: style.bg, color: style.color }}>
+      {style.label}
+    </span>
   )
 }
 

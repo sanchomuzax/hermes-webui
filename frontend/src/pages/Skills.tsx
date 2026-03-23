@@ -4,7 +4,7 @@ import { api } from '../api/client'
 import type { SkillInfo } from '../api/types'
 
 export function Skills() {
-  const [inspecting, setInspecting] = useState<{ source: string; dirName: string } | null>(null)
+  const [inspecting, setInspecting] = useState<{ source: string; dirName: string; category?: string | null } | null>(null)
 
   const { data: builtinData } = useQuery({
     queryKey: ['builtin-skills'],
@@ -16,11 +16,17 @@ export function Skills() {
     queryFn: api.customSkills,
   })
 
+  const { data: usageData } = useQuery({
+    queryKey: ['skill-usage'],
+    queryFn: api.skillUsage,
+  })
+
   if (inspecting) {
     return (
       <SkillInspector
         source={inspecting.source}
         dirName={inspecting.dirName}
+        category={inspecting.category}
         onBack={() => setInspecting(null)}
       />
     )
@@ -42,7 +48,9 @@ export function Skills() {
                 key={skill.dir_name}
                 skill={skill}
                 source="custom"
-                onInspect={() => setInspecting({ source: 'custom', dirName: skill.dir_name })}
+                usage7d={usageData?.usage_7d[skill.dir_name] || usageData?.usage_7d[skill.name] || 0}
+                usageAll={usageData?.usage_all[skill.dir_name] || usageData?.usage_all[skill.name] || 0}
+                onInspect={() => setInspecting({ source: 'custom', dirName: skill.dir_name, category: skill.category })}
               />
             ))}
           </div>
@@ -61,7 +69,9 @@ export function Skills() {
                 key={skill.dir_name}
                 skill={skill}
                 source="builtin"
-                onInspect={() => setInspecting({ source: 'builtin', dirName: skill.dir_name })}
+                usage7d={usageData?.usage_7d[skill.dir_name] || usageData?.usage_7d[skill.name] || 0}
+                usageAll={usageData?.usage_all[skill.dir_name] || usageData?.usage_all[skill.name] || 0}
+                onInspect={() => setInspecting({ source: 'builtin', dirName: skill.dir_name, category: skill.category })}
               />
             ))}
           </div>
@@ -74,10 +84,14 @@ export function Skills() {
 function SkillCard({
   skill,
   source,
+  usage7d,
+  usageAll,
   onInspect,
 }: {
   skill: SkillInfo
   source: string
+  usage7d: number
+  usageAll: number
   onInspect: () => void
 }) {
   return (
@@ -97,6 +111,18 @@ function SkillCard({
         >
           {source}
         </span>
+        {usageAll > 0 && (
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded-full font-medium ml-auto"
+            style={{
+              backgroundColor: usage7d > 0 ? 'rgba(34,197,94,0.15)' : 'rgba(148,163,184,0.1)',
+              color: usage7d > 0 ? 'var(--color-success)' : 'var(--color-text-muted)',
+            }}
+            title={`${usageAll} total invocations, ${usage7d} in last 7 days`}
+          >
+            {usage7d > 0 ? `${usage7d} this week` : `${usageAll} total`}
+          </span>
+        )}
       </div>
       {skill.description && (
         <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
@@ -133,15 +159,17 @@ function SkillCard({
 function SkillInspector({
   source,
   dirName,
+  category,
   onBack,
 }: {
   source: string
   dirName: string
+  category?: string | null
   onBack: () => void
 }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['skill-detail', source, dirName],
-    queryFn: () => api.skillDetail(source, dirName),
+    queryKey: ['skill-detail', source, dirName, category],
+    queryFn: () => api.skillDetail(source, dirName, category),
   })
 
   const [activeTab, setActiveTab] = useState<'docs' | 'code'>('docs')

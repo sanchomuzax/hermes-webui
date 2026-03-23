@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
+import { sourceColor } from '../utils/sourceColors'
 
 export function Dashboard() {
   const { data: stats } = useQuery({
@@ -158,20 +159,6 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
   )
 }
 
-const SOURCE_COLORS: Record<string, string> = {
-  telegram: '#2AABEE',
-  cli: '#6366f1',
-  cron: '#8b5cf6',
-  api_server: '#f59e0b',
-  discord: '#5865F2',
-  slack: '#4A154B',
-  whatsapp: '#25D366',
-  email: '#EA4335',
-}
-
-function sourceColor(source: string): string {
-  return SOURCE_COLORS[source] || '#64748b'
-}
 
 function sessionLabel(s: { title: string | null; preview: string; source: string }): string {
   if (s.title && s.title !== '---' && !s.title.startsWith('[SYSTEM:')) return s.title

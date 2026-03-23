@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { CostBadge } from '../components/shared/CostBadge'
 import { SearchBar } from '../components/shared/SearchBar'
+import { sourceColor, SOURCE_FILTERS } from '../utils/sourceColors'
 import type { SearchResult } from '../api/types'
 
 function timeAgo(ts: number): string {
@@ -18,6 +19,9 @@ export function Sessions() {
   const [source, setSource] = useState<string>('')
   const [page, setPage] = useState(0)
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null)
+  const [newestFirst, setNewestFirst] = useState(() => {
+    return localStorage.getItem('hermes_sessions_order') !== 'oldest'
+  })
   const limit = 20
 
   const { data, isLoading } = useQuery({
@@ -41,8 +45,25 @@ export function Sessions() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Sessions</h2>
-        <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-          {data ? `${data.total} total` : '...'}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setNewestFirst((prev) => {
+                const next = !prev
+                localStorage.setItem('hermes_sessions_order', next ? 'newest' : 'oldest')
+                return next
+              })
+            }}
+            className="text-xs px-2 py-1 rounded flex items-center gap-1"
+            style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-surface)' }}
+            title={newestFirst ? 'Newest first' : 'Oldest first'}
+          >
+            <span style={{ display: 'inline-block', transform: newestFirst ? 'none' : 'rotate(180deg)', transition: 'transform 0.2s' }}>↓</span>
+            {newestFirst ? 'Newest' : 'Oldest'}
+          </button>
+          <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+            {data ? `${data.total} total` : '...'}
+          </span>
         </div>
       </div>
 
@@ -58,30 +79,22 @@ export function Sessions() {
         )}
       </div>
 
-      {/* Source filter */}
+      {/* Source filter tabs */}
       <div className="flex gap-2 flex-wrap">
-        <button
+        <FilterTab
+          label="All"
+          active={!source}
+          color="var(--color-primary)"
           onClick={() => { setSource(''); setPage(0) }}
-          className="text-xs px-2 py-1 rounded-full"
-          style={{
-            backgroundColor: !source ? 'var(--color-primary)' : 'var(--color-surface)',
-            color: !source ? 'white' : 'var(--color-text-muted)',
-          }}
-        >
-          All
-        </button>
-        {['cli', 'telegram', 'discord', 'slack', 'whatsapp', 'email'].map((s) => (
-          <button
+        />
+        {SOURCE_FILTERS.map((s) => (
+          <FilterTab
             key={s}
+            label={s}
+            active={source === s}
+            color={sourceColor(s)}
             onClick={() => { setSource(s); setPage(0) }}
-            className="text-xs px-2 py-1 rounded-full capitalize"
-            style={{
-              backgroundColor: source === s ? 'var(--color-primary)' : 'var(--color-surface)',
-              color: source === s ? 'white' : 'var(--color-text-muted)',
-            }}
-          >
-            {s}
-          </button>
+          />
         ))}
       </div>
 
@@ -97,11 +110,8 @@ export function Sessions() {
               style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}>
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-xs px-1.5 py-0.5 rounded mr-2"
-                    style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
-                    {r.source}
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <SourceBadge source={r.source} />
+                  <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>
                     {r.role}
                   </span>
                 </div>
@@ -120,7 +130,14 @@ export function Sessions() {
         <>
           <div className="space-y-2">
             {isLoading && <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading...</p>}
-            {data?.sessions.map((s) => (
+            {[...(data?.sessions || [])].sort((a, b) => {
+              const aActive = !a.ended_at ? 1 : 0
+              const bActive = !b.ended_at ? 1 : 0
+              if (aActive !== bActive) return bActive - aActive
+              const aTime = a.last_active || a.started_at
+              const bTime = b.last_active || b.started_at
+              return newestFirst ? bTime - aTime : aTime - bTime
+            }).map((s) => (
               <Link key={s.id} to={`/sessions/${s.id}`}
                 className="block p-3 rounded-lg border no-underline transition-colors"
                 style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}>
@@ -129,10 +146,8 @@ export function Sessions() {
                     <div className="font-medium text-sm">
                       {s.title || s.preview || s.id.slice(0, 8)}
                     </div>
-                    <div className="flex gap-3 mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      <span className="px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg)' }}>
-                        {s.source}
-                      </span>
+                    <div className="flex gap-3 mt-1 text-xs items-center" style={{ color: 'var(--color-text-muted)' }}>
+                      <SourceBadge source={s.source} />
                       <span>{s.model || 'unknown'}</span>
                       <span>{s.message_count} msgs</span>
                       <span>{s.tool_call_count} tools</span>
@@ -178,6 +193,43 @@ export function Sessions() {
   )
 }
 
+/** Colored source badge with the platform's brand color */
+function SourceBadge({ source }: { source: string }) {
+  return (
+    <span
+      className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium"
+      style={{
+        backgroundColor: sourceColor(source),
+        color: '#fff',
+      }}
+    >
+      {source}
+    </span>
+  )
+}
+
+/** Colored filter tab — active uses the source color, inactive is neutral */
+function FilterTab({ label, active, color, onClick }: {
+  label: string
+  active: boolean
+  color: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-xs px-2.5 py-1 rounded-full capitalize transition-colors"
+      style={{
+        backgroundColor: active ? color : 'var(--color-surface)',
+        color: active ? '#fff' : 'var(--color-text-muted)',
+        border: active ? 'none' : '1px solid var(--color-border)',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
 function SessionStatusBadge({ endedAt, lastActive }: { endedAt: number | null; lastActive: number | null }) {
   if (endedAt) {
     return (
@@ -188,7 +240,6 @@ function SessionStatusBadge({ endedAt, lastActive }: { endedAt: number | null; l
     )
   }
 
-  // No ended_at — check last activity to determine if truly active or just idle
   const now = Date.now() / 1000
   const lastActivityAge = lastActive ? now - lastActive : Infinity
   const FIVE_MINUTES = 300
@@ -202,6 +253,5 @@ function SessionStatusBadge({ endedAt, lastActive }: { endedAt: number | null; l
     )
   }
 
-  // Last activity more than 5 minutes ago — idle/stale
   return null
 }

@@ -8,14 +8,19 @@ from pydantic import BaseModel
 class CronJob(BaseModel):
     """Single cron job."""
 
+    model_config = {"extra": "ignore"}
+
     id: str
     name: str = ""
     schedule: Any = None  # Can be string or dict (e.g. {"kind": "cron", "expr": "..."})
     prompt: str = ""
     enabled: bool = True
     last_run: Optional[str] = None
+    last_run_at: Optional[str] = None
     next_run: Optional[str] = None
+    next_run_at: Optional[str] = None
     created_at: Optional[str] = None
+    repeat: Optional[dict[str, Any]] = None
 
 
 class CronJobListResponse(BaseModel):

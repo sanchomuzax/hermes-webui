@@ -83,8 +83,11 @@ export interface CronJob {
   prompt: string
   enabled: boolean
   last_run: string | null
+  last_run_at: string | null
   next_run: string | null
+  next_run_at: string | null
   created_at: string | null
+  repeat: { times: number | null; completed: number } | null
 }
 
 export interface SkillInfo {
@@ -92,6 +95,7 @@ export interface SkillInfo {
   dir_name: string
   path: string
   description: string
+  category: string | null
   tools: string[]
   docs: string[]
 }

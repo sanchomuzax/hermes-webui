@@ -68,7 +68,7 @@ export default function App() {
   )
   const [theme, setTheme] = useState<string>('dark')
 
-  const { connected, events } = useWebSocket(token)
+  const { connected } = useWebSocket(token)
 
   const handleLogin = useCallback((t: string) => {
     setToken(t)
