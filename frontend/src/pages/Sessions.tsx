@@ -104,7 +104,9 @@ export function Sessions() {
           <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
             Search Results ({searchResults.length})
           </h3>
-          {searchResults.map((r) => (
+          {[...searchResults].sort((a, b) => {
+            return newestFirst ? b.timestamp - a.timestamp : a.timestamp - b.timestamp
+          }).map((r) => (
             <Link key={r.id} to={`/sessions/${r.session_id}`}
               className="block p-3 rounded-lg border no-underline"
               style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}>

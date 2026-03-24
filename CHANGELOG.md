@@ -2,6 +2,11 @@
 
 All notable changes to Hermes WebUI are documented here.
 
+## [1.3.1] - 2026-03-24
+
+### Fixed
+- **Sessions page**: search results now respect Newest/Oldest sort toggle
+
 ## [1.3.0] - 2026-03-23
 
 ### Added
